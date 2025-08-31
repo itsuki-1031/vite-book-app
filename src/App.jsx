@@ -1,35 +1,57 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { loginSuccess, logout, authChecked } from './store/authSlice';
+import { useDispatch, useSelector } from 'react-redux'; // Redux Providerをインポート
+import { SignUp } from './SignUp.jsx';
+import { Login } from './Login.jsx';
+import { BookListPage } from './components/BookListPage.jsx'; // 新しく作成したページコンポーネントをインポート
 import './App.css'
+import { Header } from './Header.jsx';
+import { url } from '../const.js';
+import axios from 'axios';
 
-function App() {
-  const [count, setCount] = useState(0)
+export const App = () => {
+  const dispatch = useDispatch();
+  const isAuthChecked = useSelector((state) => state.auth.isAuthChecked); // ✅ authSliceの状態を取得
 
-  return (
+  useEffect(() => {
+    const token = localStorage.getItem("token");//ログイン状態かどうか
+    if (token) {
+      axios.get(`${url}/users`, {
+        headers: {Authorization: `Bearer ${token}`},
+      })
+      .then(res => {
+        dispatch(loginSuccess({token, username: res.data.name}));
+        dispatch(authChecked());
+      })
+      .catch(err => {
+        console.log('ログイン状態失敗', err);
+        dispatch(logout());
+      });
+    } else {
+      dispatch(authChecked());
+    }
+  }, [dispatch]);
+  
+  if (!isAuthChecked) return <div>読み込み中...</div>;//認証チェック完了puragu
+
+
+  return(
+    // <Provider>でアプリケーション全体をラップし、Reduxストアを提供
     <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+      <Router>
+        <Header />
+          <Routes>
+            <Route path='/' element={<BookListPage />} />
+            <Route path = '/signup' element = { < SignUp />} />
+            <Route path = '/login' element = { < Login />} />
+          </Routes>
+      </Router>
     </>
   )
 }
-
-export default App
+//一旦基礎1をやって怪しかったら入門に戻る
+//エラーはエラーをWeb上で検索して
+//コードは自分でエラーはAIで聞く
+//基礎1で1行ずつ読めるようにしていく
+//それか入門編で1行ずつ読めるようにやっていく(1行ずつと塊を読めるようにする)
